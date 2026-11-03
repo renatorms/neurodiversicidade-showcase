@@ -1,61 +1,80 @@
 # Neurodiversicidade
 
-Plataforma web de autoavaliação para prefeituras. O gestor municipal responde a
-um questionário sobre cidades inteligentes e inclusivas para pessoas
-neurodivergentes e recebe na hora um diagnóstico com gráficos, um relatório em
-PDF e a posição do município em relação aos demais, sem que ninguém seja
-identificado.
+Plataforma web de diagnóstico sobre cidades inteligentes e inclusivas para
+pessoas neurodivergentes, com dois públicos:
+
+- **Gestores municipais** avaliam a maturidade da prefeitura em 42 temas e
+  recebem na hora um painel com gráficos, um relatório em PDF e a comparação com
+  municípios de perfil semelhante, sem que nenhum município seja identificado.
+- **Cidadãos** dão a sua percepção sobre a cidade em que vivem, de forma
+  anônima, e veem o resultado em um painel próprio.
 
 Projeto desenvolvido para um grupo de pesquisa universitário. **O código-fonte é
 privado.** Este repositório é uma vitrine de portfólio e as telas mostram apenas
 dados fictícios.
 
-> Status: MVP concluído, em preparação para o lançamento.
+> Status: em produção, com domínio próprio e HTTPS, para o lançamento em um
+> evento com prefeituras.
 
-![Página inicial da plataforma](docs/screenshots/inicio.png)
+![Página inicial com os dois públicos](docs/screenshots/inicio.png)
 
 ## Telas
 
-| Questionário | Resultado |
+| Questionário do gestor | Resultado imediato |
 | --- | --- |
-| ![Questionário por dimensão](docs/screenshots/questionario.png) | ![Resultado com radar e faixas](docs/screenshots/resultado.png) |
+| ![Questionário por blocos com escala de maturidade](docs/screenshots/questionario.png) | ![Painel com índice, barras e radar](docs/screenshots/resultado.png) |
 
-| Comparação anônima | Relatório em PDF |
+| Comparação com perfil semelhante | Relatório em PDF |
 | --- | --- |
-| ![Comparação entre municípios sem nomes](docs/screenshots/comparacao.png) | ![Relatório executivo para impressão](docs/screenshots/relatorio.png) |
+| ![Comparação anônima com municípios de mesmo porte e região](docs/screenshots/comparacao.png) | ![Relatório para impressão com a média do grupo](docs/screenshots/relatorio.png) |
+
+| Painel do cidadão |
+| --- |
+| ![Painel do cidadão com notas por dimensão](docs/screenshots/cidadao.png) |
 
 ## O que a plataforma faz
 
-- **Questionário em etapas:** cadastro, perfil do município e 6 dimensões
-  apresentadas uma por tela, com escala Likert de 1 a 5 e a opção "não sei".
-- **Diagnóstico imediato:** nota por dimensão, índice geral e uma faixa de
-  maturidade (de "muito baixa" a "avançada"), em gráfico de radar e de barras.
-  Quando há muitas respostas "não sei", o resultado avisa.
-- **Comparação anônima:** o município se vê em relação aos demais, mas a API
-  pública devolve só números, sem nome, UF ou id. A lista sai ordenada pela nota,
-  para que a posição não revele a ordem de envio.
-- **Relatório executivo:** página pronta para impressão em PDF, com ações
-  institucionais recomendadas e boas práticas para as dimensões prioritárias.
-- **Volta sem login:** ao terminar, o gestor recebe por e-mail um link secreto
-  para o próprio relatório.
-- **Gestão pelo Django Admin:** leitura das avaliações e exportação em CSV para
-  a equipe de pesquisa.
+- **Dois questionários de 42 itens**, nas mesmas 6 dimensões: o do gestor usa
+  uma escala de maturidade (de "inexistente" a "consolidado e monitorado") e o
+  do cidadão, uma escala de concordância. Os dois têm a opção "não sei avaliar",
+  que fica fora do cálculo.
+- **Município sem erro de digitação:** o respondente escolhe a UF e depois o
+  município numa lista oficial de 5.571 municípios. Porte e região saem da base
+  oficial de população, sem perguntar.
+- **Diagnóstico imediato** para o gestor: índice geral, nota por dimensão,
+  classificação por faixa, leitura executiva, pontos fortes, prioridades e boas
+  práticas.
+- **Comparação com municípios de perfil semelhante:** mesma região e porte,
+  depois só porte, depois todos, parando no primeiro grupo com pelo menos 5
+  municípios, para que nenhum seja identificável.
+- **Relatório em PDF** com layout próprio para impressão, incluindo a média do
+  grupo de comparação.
+- **Validação do respondente sem travar o envio:** o gestor confirma o e-mail
+  num link enviado depois da resposta, e a equipe também pode validar
+  manualmente pelo painel administrativo.
+- **Análise por público no lado do cidadão:** as respostas são agrupadas em
+  pessoas neurodivergentes, familiares e cidadãos em geral, a partir das
+  perguntas de triagem.
+- **Página de contato** com envio por e-mail para a equipe e cópia salva no
+  painel administrativo.
+- **Gestão pelo Django Admin:** consulta, validação, exclusão a pedido do
+  titular dos dados e exportação em CSV para análise.
 
 ## Arquitetura
 
 ```mermaid
 flowchart LR
-    U[Gestor municipal<br/>navegador] -->|HTTPS| N[nginx]
+    U[Gestor ou cidadão<br/>navegador] -->|HTTPS| N[nginx<br/>Let's Encrypt]
     N -->|arquivos estáticos| R[React + Vite<br/>build]
     N -->|/api e /admin| G[gunicorn]
     G --> D[Django + DRF]
     D --> S[(SQLite<br/>modo WAL)]
-    D -->|link do relatório| E[Serviço de e-mail]
+    D -->|validação e contato| E[Serviço de e-mail SMTP]
 ```
 
 Uma única VPS Linux, com o nginx servindo o frontend compilado e repassando a
-API ao gunicorn, que roda como serviço do systemd. Backup do banco e
-atualização do servidor são feitos por scripts shell.
+API ao gunicorn, que roda como serviço do systemd. O certificado HTTPS renova
+sozinho. Backup do banco e atualização do servidor são feitos por scripts shell.
 
 ## Stack
 
@@ -64,31 +83,40 @@ atualização do servidor são feitos por scripts shell.
 | Frontend | React 19, TypeScript (`strict`), Vite, Recharts |
 | Backend | Python 3.12, Django 6, Django REST Framework |
 | Banco | SQLite em modo WAL |
-| Infraestrutura | Linux (VPS), nginx, gunicorn, systemd |
-| Qualidade | testes do Django (41 casos na API), oxlint, checagem de tipos no build |
+| Infraestrutura | Linux (VPS), nginx, gunicorn, systemd, Let's Encrypt |
+| Qualidade | 89 testes automáticos no backend, oxlint, checagem de tipos no build |
 
 ## Decisões técnicas
 
-- **Link secreto em vez de login.** O MVP não tem contas de usuário. O banco
-  guarda só o hash SHA-256 do token do relatório: quem tiver acesso ao banco
-  não consegue montar os links.
-- **Privacidade na comparação.** O endpoint público expõe apenas notas, e só de
-  quem marcou o consentimento para entrar na comparação.
-- **Integridade no banco, não só no código.** Restrições `UniqueConstraint`
-  garantem uma avaliação por município, uma resposta por pergunta e versões
-  únicas do instrumento.
+- **Link secreto em vez de login.** Não há contas de usuário: o gestor volta ao
+  relatório por um link enviado por e-mail. O banco guarda só o hash SHA-256 do
+  token, então quem tiver acesso ao banco não consegue montar os links.
+- **Anonimato na comparação.** O endpoint público devolve só notas, sem nome, UF
+  ou id. A lista depende apenas do perfil do grupo, nunca de quem consulta:
+  assim, comparar duas consultas não revela a nota de ninguém. A própria
+  avaliação sai da lista só com o token secreto.
+- **Validação que resiste a antivírus.** Filtros de e-mail costumam abrir os
+  links sozinhos. Por isso a confirmação acontece num botão (POST) dentro da
+  página, e nunca ao abrir o link (GET).
+- **Dados sensíveis separados.** As respostas dos cidadãos ficam em tabelas
+  próprias, sem nome, e-mail ou IP. Os e-mails de quem pede aviso de materiais
+  ficam numa lista que não se liga a nenhuma resposta.
+- **Textos dos documentos, sem retrabalho.** Os textos dos questionários foram
+  extraídos direto dos documentos oficiais (Word) por script, e testes conferem
+  trechos-chave. Isso evita erros de digitação em 84 itens.
 - **Mesma conta nos dois lados.** O frontend calcula o resultado na hora e o
-  backend refaz a conta para o CSV. As regras são espelhadas (inclusive o
-  arredondamento, que difere entre Python e JavaScript) e um teste confere que
+  backend refaz a conta para o CSV. As regras são espelhadas, inclusive o
+  arredondamento, que difere entre Python e JavaScript, e um teste confere que
   os dois chegam ao mesmo número.
 - **TypeScript sem `any`.** Toda resposta da API é lida como `unknown` e
   validada antes do uso.
 - **Endpoints públicos com cuidado.** Cada endpoint declara as permissões de
-  forma explícita, os de escrita e de consulta do relatório têm limite de
-  requisições (throttling) e o CORS só aceita origens listadas.
-- **SQLite em produção.** Para o volume esperado (dezenas de prefeituras), o
-  SQLite em modo WAL elimina um serviço de banco separado. A troca para
-  PostgreSQL fica pronta via `DATABASE_URL`, se o volume crescer.
+  forma explícita, os de escrita têm limite de requisições por IP e o formulário
+  de contato tem uma armadilha contra robôs. O frontend chama a API no mesmo
+  domínio da página, sem CORS em produção.
+- **SQLite em produção.** Para o volume esperado (dezenas de prefeituras e
+  algumas centenas de cidadãos), o SQLite em modo WAL elimina um serviço de
+  banco separado. A troca para PostgreSQL fica pronta via `DATABASE_URL`.
 
 ## Autor
 
