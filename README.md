@@ -7,7 +7,8 @@ pessoas neurodivergentes, com dois públicos:
   recebem na hora um painel com gráficos, um relatório em PDF e a comparação com
   municípios de perfil semelhante, sem que nenhum município seja identificado.
 - **Cidadãos** dão a sua percepção sobre a cidade em que vivem, de forma
-  anônima, e veem o resultado em um painel próprio.
+  anônima, e veem o resultado em um painel próprio, que deixa claro que aquela
+  é uma percepção individual e não o resultado do município.
 
 Projeto desenvolvido para um grupo de pesquisa universitário. **O código-fonte é
 privado.** Este repositório é uma vitrine de portfólio e as telas mostram apenas
@@ -28,9 +29,18 @@ dados fictícios.
 | --- | --- |
 | ![Comparação anônima com municípios de mesmo porte e região](docs/screenshots/comparacao.png) | ![Relatório para impressão com a média do grupo](docs/screenshots/relatorio.png) |
 
-| Painel do cidadão |
-| --- |
-| ![Painel do cidadão com notas por dimensão](docs/screenshots/cidadao.png) |
+| Painel do cidadão | PDF do cidadão |
+| --- | --- |
+| ![Painel do cidadão com aviso de percepção individual](docs/screenshots/cidadao.png) | ![PDF de uma página com a faixa "percepção individual"](docs/screenshots/relatorio-cidadao.png) |
+
+## No celular
+
+Todas as telas se adaptam ao celular: a navegação por etapas vira uma faixa no
+topo e os cartões e gráficos passam para uma coluna.
+
+| Página inicial | Questionário | Resultado | Comparação | Cidadão |
+| --- | --- | --- | --- | --- |
+| ![Página inicial no celular](docs/screenshots/celular-inicio.png) | ![Questionário no celular](docs/screenshots/celular-questionario.png) | ![Resultado no celular](docs/screenshots/celular-resultado.png) | ![Comparação no celular](docs/screenshots/celular-comparacao.png) | ![Painel do cidadão no celular](docs/screenshots/celular-cidadao.png) |
 
 ## O que a plataforma faz
 
@@ -48,10 +58,17 @@ dados fictícios.
   depois só porte, depois todos, parando no primeiro grupo com pelo menos 5
   municípios, para que nenhum seja identificável.
 - **Relatório em PDF** com layout próprio para impressão, incluindo a média do
-  grupo de comparação.
+  grupo de comparação. O cidadão também baixa um PDF de uma página, marcado no
+  topo, no corpo e no rodapé como percepção individual, para não circular como
+  se fosse o resultado oficial da cidade.
+- **E-book de boas práticas** para download ao fim dos dois questionários, com
+  o link também dentro dos PDFs: quem receber o arquivo depois ainda encontra o
+  material.
 - **Validação do respondente sem travar o envio:** o gestor confirma o e-mail
   num link enviado depois da resposta, e a equipe também pode validar
-  manualmente pelo painel administrativo.
+  manualmente pelo painel administrativo. A tela final mostra para qual
+  endereço o link foi enviado, para o gestor perceber na hora um erro de
+  digitação e baixar o PDF enquanto ainda está na página.
 - **Análise por público no lado do cidadão:** as respostas são agrupadas em
   pessoas neurodivergentes, familiares e cidadãos em geral, a partir das
   perguntas de triagem.
@@ -108,6 +125,10 @@ sozinho. Backup do banco e atualização do servidor são feitos por scripts she
   backend refaz a conta para o CSV. As regras são espelhadas, inclusive o
   arredondamento, que difere entre Python e JavaScript, e um teste confere que
   os dois chegam ao mesmo número.
+- **PDF pela impressão do navegador.** Em vez de gerar PDF no servidor, a
+  página tem um layout próprio para impressão. Todas as medidas são
+  proporcionais à largura da folha, porque o Safari do iPhone muda a escala da
+  impressão e quebrava um layout em milímetros.
 - **TypeScript sem `any`.** Toda resposta da API é lida como `unknown` e
   validada antes do uso.
 - **Endpoints públicos com cuidado.** Cada endpoint declara as permissões de
